@@ -51,6 +51,19 @@ metrics_data = {
         f"{np.sqrt(mean_squared_error(y_test, rf_preds)):.2f}"
     ]
 }
+
+# Get the Linear Regression coefficients for the equation
+intercept = lr_model.intercept_
+coefs = lr_model.coef_
+equation = f"y = {intercept:.2f}"
+for coef, feat in zip(coefs, ['GDP', 'MH_Spend', 'Social', 'Internet', 'Policy', 'Law']):
+    # Formatting to keep the table clean
+    equation += f" + ({coef:.2f}*{feat})"
+
+# Update the metrics table to include the equation
+metrics_data["Linear Regression"].append(equation)
+metrics_data["Random Forest"].append("N/A (Uses Decision Trees)")
+metrics_data["Metric"].append("Model Equation")
 metrics_df = pd.DataFrame(metrics_data)
 
 # Retrain on ALL data for the interactive sandbox predictions
@@ -61,7 +74,7 @@ rf_model_full = RandomForestRegressor(n_estimators=100, random_state=42).fit(X, 
 # 2. Visualizations: Actual vs Predicted
 # ==========================================
 st.subheader("📊 Model Performance (Actual vs. Predicted)")
-st.markdown("If a model is perfectly accurate, all dots will fall exactly on the red trendline (where Actual = Predicted).")
+st.markdown("If a model is perfectly accurate, all dots will fall exactly on the dashed red trendline (where Actual = Predicted).")
 
 col_plot1, col_plot2 = st.columns(2)
 
@@ -73,19 +86,14 @@ def create_pred_plot(y_true, y_pred, title, color):
     fig = px.scatter(temp_df, x='Actual', y='Predicted', trendline="ols", 
                      title=title, template="simple_white", 
                      color_discrete_sequence=[color])
-    return fig# Get the Linear Regression coefficients for the equation
-intercept = lr_model.intercept_
-coefs = lr_model.coef_
-equation = f"y = {intercept:.2f}"
-for coef, feat in zip(coefs, features):
-    equation += f" + ({coef:.2f} * {feat})"
-
-# Update the metrics table to include the equation
-metrics_data["Linear Regression"].append(equation)
-metrics_data["Random Forest"].append("N/A ")
-metrics_data["Metric"].append("Model Equation")
-metrics_df = pd.DataFrame(metrics_data)
-
+                     
+    # Add a Perfect Prediction reference line (y=x)
+    min_val = min(y_true.min(), y_pred.min())
+    max_val = max(y_true.max(), y_pred.max())
+    fig.add_trace(go.Scatter(x=[min_val, max_val], y=[min_val, max_val], 
+                             mode='lines', name='Perfect Prediction',
+                             line=dict(color='red', dash='dash')))
+    return fig
 
 with col_plot1:
     st.plotly_chart(create_pred_plot(y_test, lr_preds, "Linear Regression", "#3498DB"), use_container_width=True)
@@ -100,7 +108,30 @@ st.dataframe(metrics_df, use_container_width=True, hide_index=True)
 st.markdown("---")
 
 # ==========================================
-# 3. Interactive Predictive Sandbox
+# 3. Feature Importance (NEW GRAPH)
+# ==========================================
+st.subheader("🔍 Feature Importance (Random Forest)")
+
+# Extract importance and make names readable
+importances = rf_model.feature_importances_
+clean_features = ['GDP per Capita', 'MH Spend/Capita', 'Social Media Hrs', 
+                  'Internet Penetration', 'MH Policy Exists', 'MH Law Exists']
+
+importance_df = pd.DataFrame({'Feature': clean_features, 'Importance': importances})
+importance_df = importance_df.sort_values(by='Importance', ascending=True)
+
+# Build the horizontal bar chart
+fig_imp = px.bar(importance_df, x='Importance', y='Feature', orientation='h',
+                 title="Variables ranked by their impact on the Crisis Index",
+                 template="simple_white", color_discrete_sequence=["#2ECC71"], text_auto='.3f')
+                 
+fig_imp.update_layout(height=350, margin=dict(l=0, r=0, t=40, b=0))
+st.plotly_chart(fig_imp, use_container_width=True)
+
+st.markdown("---")
+
+# ==========================================
+# 4. Interactive Predictive Sandbox
 # ==========================================
 st.subheader("🎛️ Interactive Predictive Sandbox")
 st.markdown("Adjust the variables below to see how each algorithm interprets the data to predict the final Mental Health Crisis Index.")
@@ -136,6 +167,7 @@ with col_gauges:
     pred_rf = rf_model_full.predict(input_data)[0]
     
     # Helper to build gauge
+    # Helper to build gauge
     def build_gauge(value, title):
         fig = go.Figure(go.Indicator(
             mode="gauge+number", value=value, title={'text': title},
@@ -146,10 +178,13 @@ with col_gauges:
         ))
         fig.update_layout(height=300, margin=dict(l=20, r=20, t=50, b=20))
         return fig
-
+    
+    # === ADD THIS TO THE VERY BOTTOM ===
     # Display Gauges side-by-side
     gauge_col1, gauge_col2 = st.columns(2)
+    
     with gauge_col1:
         st.plotly_chart(build_gauge(pred_lr, "Linear Regression<br><span style='font-size:0.8em;color:gray'>Predicted Index</span>"), use_container_width=True)
+        
     with gauge_col2:
         st.plotly_chart(build_gauge(pred_rf, "Random Forest<br><span style='font-size:0.8em;color:gray'>Predicted Index</span>"), use_container_width=True)
