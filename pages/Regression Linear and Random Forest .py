@@ -73,14 +73,19 @@ def create_pred_plot(y_true, y_pred, title, color):
     fig = px.scatter(temp_df, x='Actual', y='Predicted', trendline="ols", 
                      title=title, template="simple_white", 
                      color_discrete_sequence=[color])
-    
-    # Add a Perfect Prediction reference line (y=x)
-    min_val = min(y_true.min(), y_pred.min())
-    max_val = max(y_true.max(), y_pred.max())
-    fig.add_trace(go.Scatter(x=[min_val, max_val], y=[min_val, max_val], 
-                             mode='lines', name='Perfect Prediction',
-                             line=dict(color='red', dash='dash')))
-    return fig
+    return fig# Get the Linear Regression coefficients for the equation
+intercept = lr_model.intercept_
+coefs = lr_model.coef_
+equation = f"y = {intercept:.2f}"
+for coef, feat in zip(coefs, features):
+    equation += f" + ({coef:.2f} * {feat})"
+
+# Update the metrics table to include the equation
+metrics_data["Linear Regression"].append(equation)
+metrics_data["Random Forest"].append("N/A ")
+metrics_data["Metric"].append("Model Equation")
+metrics_df = pd.DataFrame(metrics_data)
+
 
 with col_plot1:
     st.plotly_chart(create_pred_plot(y_test, lr_preds, "Linear Regression", "#3498DB"), use_container_width=True)
