@@ -54,7 +54,53 @@ with row2_col2:
 st.markdown("---")
 
 # ==========================================
-# ROW 3: Social Media Impact
+# NEW ROW: Financial Investment & Critical Outcomes
+# ==========================================
+st.subheader("💰 Financial Investment & Critical Outcomes")
+st.markdown("Explore how mental health funding (or the lack thereof) impacts extreme crisis outcomes like suicide rates.")
+
+# 1. Dropdown for selecting the financial metric
+fin_x_metric = st.selectbox(
+    "Select Financial Metric to Compare on the Scatter Plot (X-Axis):", 
+    options=["Mental Health Budget (% of Total Health)", "Mental Health Investment Gap"],
+    index=0
+)
+
+# Map the dropdown choice to the actual dataset column
+x_col = 'mh_budget_pct_health' if "Budget" in fin_x_metric else 'mh_investment_gap'
+
+fin_col1, fin_col2 = st.columns(2)
+
+with fin_col1:
+    # 2. Regular Scatter Plot (Removed the 'size' parameter so all dots are equal)
+    fig_fin1 = px.scatter(filtered_df, x=x_col, y='suicide_rate_per100k',
+                          color='income_group', 
+                          hover_name='country', 
+                          title=f"Suicide Rate vs. {fin_x_metric}",
+                          template="simple_white", color_discrete_sequence=primary_colors)
+    
+    # Optional: Make the dots slightly larger so they are easier to see on a regular scatter plot
+    fig_fin1.update_traces(marker=dict(size=10))
+    fig_fin1.update_layout(yaxis_title="Suicide Rate (per 100k)")
+    st.plotly_chart(fig_fin1, use_container_width=True)
+    
+with fin_col2:
+    # 3. Box Plot for Investment Gap
+    fig_fin2 = px.box(filtered_df, x='income_group', y='mh_investment_gap', color='income_group',
+                      title="Mental Health Investment Gap by Income Group",
+                      points="all", hover_data=["country"],
+                      template="simple_white", color_discrete_sequence=primary_colors)
+    fig_fin2.update_layout(yaxis_title="Investment Gap Score", showlegend=False)
+    st.plotly_chart(fig_fin2, use_container_width=True)
+
+st.markdown("---")
+
+
+
+
+
+# ==========================================
+# ROW 4: Social Media Impact
 # ==========================================
 st.subheader("📱 Digital Impact on Mental Health")
 row3_col1, row3_col2 = st.columns(2)
@@ -77,7 +123,7 @@ with row3_col2:
 st.markdown("---")
 
 # ==========================================
-# ROW 4: Statistical Correlation
+# ROW 5: Statistical Correlation
 # ==========================================
 st.subheader("🔥 Statistical Correlation Heatmap")
 if len(filtered_df) > 1:
@@ -98,7 +144,7 @@ else:
 st.markdown("---")
 
 # ==========================================
-# ROW 5: Collapsible Raw Data Table
+# ROW 6: Collapsible Raw Data Table
 # ==========================================
 with st.expander("📂 View Raw Dataset & Styled Metrics", expanded=False):
     st.markdown("This table highlights critical zones. Deeper blues indicate higher treatment gaps and crisis indexes.")
