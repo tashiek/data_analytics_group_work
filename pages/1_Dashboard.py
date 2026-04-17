@@ -3,10 +3,10 @@ import plotly.express as px
 from utils import setup_page, load_data, global_filters, primary_colors
 
 # Initialize page
-setup_page("EDA Dashboard")
+setup_page(" Dashboard")
 filtered_df = global_filters(load_data())
 
-st.title("📊 Executive EDA Dashboard")
+st.title("📊 Dashboard")
 st.markdown("A consolidated view of global mental health KPIs, socioeconomic inequalities, and digital risk factors.")
 
 # ==========================================
@@ -31,16 +31,24 @@ st.subheader("🌍 Resource Distribution & Inequality")
 row2_col1, row2_col2 = st.columns(2)
 
 with row2_col1:
+    # Box plots show a distribution, so they don't take a single text label.
+    # However, points="all" draws a dot for every single country's actual value!
     fig1 = px.box(filtered_df, x='income_group', y='treatment_gap_pct', color='income_group', 
                   title="Treatment Gap % by Income Group", points="all", hover_data=["country"],
                   template="simple_white", color_discrete_sequence=primary_colors)
     st.plotly_chart(fig1, use_container_width=True)
 
 with row2_col2:
+    # We added text_auto='.1f' here to show the exact number to 1 decimal place
     fig2 = px.histogram(filtered_df, x='income_group', y='psychiatrists_per100k', color='income_group',
-                        histfunc='avg', title="Average Psychiatrists per 100k",
+                        histfunc='avg', title="Average Psychiatrists per 100k", text_auto='.1f',
                         template="simple_white", color_discrete_sequence=primary_colors)
-    fig2.update_layout(yaxis_title="Avg Psychiatrists per 100k")
+    
+    fig2.update_layout(yaxis_title="Avg Psychiatrists per 100k", showlegend=False)
+    
+    # This pushes the text label to sit cleanly just above the top of the bar
+    fig2.update_traces(textposition='outside') 
+    
     st.plotly_chart(fig2, use_container_width=True)
 
 st.markdown("---")
